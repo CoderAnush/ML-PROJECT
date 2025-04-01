@@ -21,27 +21,65 @@ venues = [
     "Thiruvananthapuram", "Visakhapatnam"
 ]
 
-# Streamlit UI
-st.title("🏏 Cricket Match Winner Predictor")
+# Configure page
+st.set_page_config(page_title="IPL Match Winner Predictor", layout="wide")
 
-# Dropdowns for Batting and Bowling Teams
-batting_team = st.selectbox("Select Batting Team", teams)
-bowling_team = st.selectbox("Select Bowling Team", teams)
+# Sidebar
+st.sidebar.image("https://upload.wikimedia.org/wikipedia/en/6/6a/IPL_Logo.svg", width=150)
+st.sidebar.title("Quick Access")
 
-# Dropdown for Venue
+# Main Title
+st.title("IPL Match Winner Predictor")
+st.subheader("Predict the winner of an IPL match based on real-time match data.")
+
+st.markdown("---")
+
+# Columns for team selection
+col1, col2 = st.columns(2)
+
+with col1:
+    batting_team = st.selectbox("Select Batting Team", teams)
+with col2:
+    bowling_team = st.selectbox("Select Bowling Team", teams)
+
+# Venue selection
 venue = st.selectbox("Select Venue", venues)
 
-# Numeric Inputs
-target = st.number_input("Enter Target Score", min_value=1)
-current_score = st.number_input("Enter Current Score", min_value=0)
-balls_left = st.number_input("Enter Balls Left", min_value=1, max_value=300)
-wickets_down = st.number_input("Enter Wickets Down", min_value=0, max_value=10)
+st.markdown("---")
 
-# Predict Button
-if st.button("Predict Winner"):
-    input_data = np.array([[target, current_score, balls_left, wickets_down]])  # Modify based on actual model input features
+# Match situation inputs
+st.subheader("Match Conditions")
+
+col3, col4 = st.columns(2)
+
+with col3:
+    target = st.number_input("Target Score", min_value=1, step=1)
+    current_score = st.number_input("Current Score", min_value=0, step=1)
+    
+with col4:
+    balls_left = st.number_input("Balls Left", min_value=1, max_value=300, step=1)
+    wickets_down = st.number_input("Wickets Down", min_value=0, max_value=10, step=1)
+
+st.markdown("---")
+
+# Prediction button
+if st.button("Predict Winner", use_container_width=True):
+    input_data = np.array([[target, current_score, balls_left, wickets_down]])
     prediction = model.predict(input_data)
     
-    # Display Prediction
+    # Display result
     result = "Batting Team Wins" if prediction[0] == 1 else "Bowling Team Wins"
-    st.success(f"🏆 Predicted Winner: **{result}**")
+    
+    st.markdown(f"<h2 style='text-align: center; color: green;'>{result}</h2>", unsafe_allow_html=True)
+
+    # Match insights
+    st.subheader("Match Insights")
+    run_rate = round(current_score / ((300 - balls_left) / 6), 2) if balls_left < 300 else 0
+    required_run_rate = round((target - current_score) / (balls_left / 6), 2) if balls_left > 0 else 0
+    
+    col5, col6 = st.columns(2)
+    col5.metric(label="Current Run Rate", value=f"{run_rate} RPO")
+    col6.metric(label="Required Run Rate", value=f"{required_run_rate} RPO")
+
+st.markdown("---")
+
