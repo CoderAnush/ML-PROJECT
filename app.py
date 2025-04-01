@@ -1,7 +1,6 @@
 import streamlit as st
 import numpy as np
 import joblib
-import pandas as pd
 
 # Load trained XGBoost model
 model = joblib.load("xgboost_model.pkl")
@@ -63,40 +62,22 @@ with col4:
 
 st.markdown("---")
 
-# Encode categorical inputs (teams and venue) into numeric values
-def encode_input_data(batting_team, bowling_team, venue):
-    team_mapping = {team: idx for idx, team in enumerate(teams)}
-    venue_mapping = {venue: idx for idx, venue in enumerate(venues)}
-    
-    batting_team_encoded = team_mapping[batting_team]
-    bowling_team_encoded = team_mapping[bowling_team]
-    venue_encoded = venue_mapping[venue]
-    
-    return batting_team_encoded, bowling_team_encoded, venue_encoded
-
-# Get encoded input data
-batting_team_encoded, bowling_team_encoded, venue_encoded = encode_input_data(batting_team, bowling_team, venue)
-
 # Prediction button
 if st.button("Predict Winner", use_container_width=True):
-    # Prepare input data as a 2D array for prediction
-    input_data = np.array([[target, current_score, balls_left, wickets_down, 
-                            batting_team_encoded, bowling_team_encoded, venue_encoded]])
+    # Prepare the input data
+    input_data = np.array([[target, current_score, balls_left, wickets_down]])
 
-    # Predict the winner
-    prediction = model.predict(input_data)
-    prediction_proba = model.predict_proba(input_data)
+    # Predict the probabilities for both classes (batting team wins or bowling team wins)
+    proba = model.predict_proba(input_data)
 
-    # Get the class probabilities
-    prob_batting_team = prediction_proba[0][1]  # Probability that the Batting Team wins
-    prob_bowling_team = prediction_proba[0][0]  # Probability that the Bowling Team wins
+    # Get the predicted class (0 or 1) and its confidence (probability)
+    predicted_class = np.argmax(proba)  # 1 if batting team wins, 0 if bowling team wins
+    confidence_score = proba[0][predicted_class] * 100  # Probability in percentage
 
-    # Display result
-    result = "Batting Team Wins" if prediction[0] == 1 else "Bowling Team Wins"
-    confidence = prob_batting_team if prediction[0] == 1 else prob_bowling_team
-
+    # Display the predicted winner and confidence score
+    result = "Batting Team Wins" if predicted_class == 1 else "Bowling Team Wins"
     st.markdown(f"<h2 style='text-align: center; color: green;'>{result}</h2>", unsafe_allow_html=True)
-    st.markdown(f"<h3 style='text-align: center;'>Confidence: {confidence * 100:.2f}%</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align: center;'>Confidence: {confidence_score:.2f}%</h3>", unsafe_allow_html=True)
 
     # Match insights
     st.subheader("Match Insights")
@@ -108,4 +89,3 @@ if st.button("Predict Winner", use_container_width=True):
     col6.metric(label="Required Run Rate", value=f"{required_run_rate} RPO")
 
 st.markdown("---")
-
